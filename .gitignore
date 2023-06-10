@@ -1,0 +1,8 @@
+.idea
+*.iml
+*.egg-info
+__pycache__
+*.pyc
+/build/*
+/uddr_client.egg-info/*
+/dist/*
