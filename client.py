@@ -136,3 +136,45 @@ class Client:
         applied_filters.update({'query_type': query_type.lower()})
         
         return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        
+    def report(self, report_id: str) -> Dict:
+        """
+        Query the report endpoint to get a specific report.
+
+        This endpoint returns a specific report based on the provided report_id. The report is returned in PDF format.
+        
+        :param report_id: The ID (uuid) of the report.
+        :return: A report in pdf format.
+        
+        """
+        uri = "/report"
+        applied_filters = {'report_id': report_id}
+        
+        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}), accept='application/pdf')
+        
+    def reports(self) -> Dict:
+        """
+        Query the reports endpoint to get a list of executive reports.
+
+        This endpoint returns a list of executive reports. Each item in the list contains detailed information 
+        about a particular report, including the client_id, datetime, datetime_end, datetime_start, and report_id.
+        
+        :return: An open containing a list of reports and the count.
+        {
+            :param reports: [{
+                :param client_id: string
+                    example: 6695ad37-811c-49c4-8975-c1263fb73aab
+                :param datetime: string
+                    example: 2023-02-23T04:06:20.070714Z
+                :param datetime_end: string
+                    example: March 10, 2023
+                :param datetime_start: string
+                    example: January 07, 2023
+                :param report_id: string
+                    example: 54bb5625-ec81-4bb7-a65d-dd8869a5353b
+            }]
+        }
+        """
+        uri = "/reports"
+        
+        return self.connection.post(uri, json.dumps({}))
