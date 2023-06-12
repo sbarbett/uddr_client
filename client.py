@@ -1,5 +1,5 @@
 from .connection import Connection
-import json
+import json, re
 from typing import Dict
 
 class Client:
@@ -178,3 +178,89 @@ class Client:
         uri = "/reports"
         
         return self.connection.post(uri, json.dumps({}))
+        
+    def summary(self, query_type: str) -> Dict:
+        """
+        Query the summary endpoint to get request summaries.
+
+        This endpoint returns a summary of requests based on the provided query type. The summary contains 
+        the total_count, query_type and day_count.
+
+        :param query_type: The type of summary query to perform. Accepted values are:
+            'TOTAL'
+            'BLOCKED'
+            'INDICATORS'
+        :return: A summary response object.
+        {
+            :param day_count: integer
+                example: 1
+            :param query_type: string
+                example: 'BLOCKED'
+            :param total_count: integer
+                example: 0
+        }
+        :raises ValueError: If query_type is not one of the accepted values.
+        """
+        uri = "/summary"
+        applied_filters = {}
+
+        VALID_QUERY_TYPE = {'TOTAL', 'BLOCKED', 'INDICATORS'}
+        if query_type.upper() not in VALID_QUERY_TYPE:
+            raise ValueError("summary: query_type must be one of %r" % VALID_QUERY_TYPE)
+        
+        applied_filters.update({'query_type': query_type.upper()})
+
+        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+
+    def histogram_artifact(self, artifact: str, artifact_type: str, start_date: str, end_date: str, interval: str, **kwargs) -> Dict:
+        """
+        Query the histogram/artifact endpoint.
+
+        This method sends a request to the histogram/artifact endpoint.
+        The endpoint provides histogram data for the pop out panel timeline chart.
+
+        :param artifact: The artifact
+        :param artifact_type: The artifact type. Accepted values are:
+            DOMAIN.KEYWORD
+            DOMAIN_2TLD.KEYWORD
+            NAMESERVER_TLD.KEYWORD
+            NAMESERVER.KEYWORD
+            NAMESERVER_IP.KEYWORD
+            RESPONSE.A.KEYWORD
+            RESPONSE.AAAA.KEYWORD
+            RESPONSE.CNAME.KEYWORD
+            RESPONSE.CNAME_2TLD.KEYWORD
+        :param start_date: The start window in format YYYY-MM-DD
+        :param end_date: The end window in format YYYY-MM-DD
+        :param interval: The interval for the aggregate
+        :param query_type: (Optional) The type of query. Accepted values are:
+            QUERIES
+            QUERIES_OVER_DAY
+            QUERIES_OVER_HOUR
+        :return: A histogram artifact response.
+        :raises ValueError: If artifact_type, query_type are not one of the accepted values or if start_date, end_date are not in the correct format.
+        """
+
+        uri = "/histogram/artifact"
+        applied_filters = {'artifact': artifact}
+
+        VALID_ARTIFACT_TYPE = {'DOMAIN.KEYWORD', 'DOMAIN_2TLD.KEYWORD', 'NAMESERVER_TLD.KEYWORD', 'NAMESERVER.KEYWORD', 
+                               'NAMESERVER_IP.KEYWORD', 'RESPONSE.A.KEYWORD', 'RESPONSE.AAAA.KEYWORD', 'RESPONSE.CNAME.KEYWORD', 'RESPONSE.CNAME_2TLD.KEYWORD'}
+        if artifact_type.upper() not in VALID_ARTIFACT_TYPE:
+            raise ValueError("histogram_artifact: artifact_type must be one of %r" % VALID_ARTIFACT_TYPE)
+
+        applied_filters.update({'artifact_type': artifact_type.lower()})
+
+        if not re.fullmatch("\d{4}-\d{2}-\d{2}", start_date) or not re.fullmatch("\d{4}-\d{2}-\d{2}", end_date):
+            raise ValueError("histogram_artifact: start_date, end_date must be in the format 'YYYY-MM-DD'")
+
+        applied_filters.update({'start_date': start_date, 'end_date': end_date, 'interval': interval})
+
+        if 'query_type' in kwargs:
+            VALID_QUERY_TYPE = {'QUERIES', 'QUERIES_OVER_DAY', 'QUERIES_OVER_HOUR'}
+            if kwargs['query_type'].upper() not in VALID_QUERY_TYPE:
+                raise ValueError("histogram_artifact: query_type must be one of %r" % VALID_QUERY_TYPE)
+
+            applied_filters.update({'query_type': kwargs['query_type'].lower()})
+
+        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
