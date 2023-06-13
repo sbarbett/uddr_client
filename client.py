@@ -1,4 +1,5 @@
 from .connection import Connection
+from .response import Response
 import json, re, datetime
 from typing import Dict, List
 
@@ -230,7 +231,8 @@ class Client:
         """
         uri = "/reports"
         
-        return self.connection.post(uri, json.dumps({}))
+        response = self.connection.post(uri, json.dumps({}))
+        return Response(response)
 
     # Logs
 
@@ -343,7 +345,8 @@ class Client:
                         raise ValueError(f"The '{key}' date in 'rangeValue' must be in 'YYYY-MM-DDTHH:MM:SS.sssZ' format.")
             filter['id'] = filter['id'].lower()
 
-        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        return Response(response)
         
     # Passthrough
     
