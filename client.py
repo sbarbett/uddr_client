@@ -1,6 +1,6 @@
 from .connection import Connection
-import json, re
-from typing import Dict
+import json, re, datetime
+from typing import Dict, List
 
 class Client:
     def __init__(self, api_key: str):
@@ -9,6 +9,24 @@ class Client:
         :param api_key: UDDR user's API keys
         """
         self.connection = Connection(api_key)
+        
+    def _is_valid_date(self, date: str) -> bool:
+        """
+        Validate if a string is in 'YYYY-MM-DDTHH:MM:SS.sssZ' or 'YYYY-MM-DD' format.
+
+        :param date: The string to validate.
+        :return: A boolean value. True if the string is a valid date, False otherwise.
+        """
+        formats = ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d")
+        for date_format in formats:
+            try:
+                datetime.datetime.strptime(date, date_format)
+                return True
+            except ValueError:
+                continue
+        return False
+        
+    # Overview
 
     def aggregates(self, query_type: str, **kwargs) -> Dict:
         """
@@ -137,6 +155,41 @@ class Client:
         
         return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
         
+    def summary(self, query_type: str) -> Dict:
+        """
+        Query the summary endpoint to get request summaries.
+
+        This endpoint returns a summary of requests based on the provided query type. The summary contains 
+        the total_count, query_type and day_count.
+
+        :param query_type: The type of summary query to perform. Accepted values are:
+            'TOTAL'
+            'BLOCKED'
+            'INDICATORS'
+        :return: A summary response object.
+        {
+            :param day_count: integer
+                example: 1
+            :param query_type: string
+                example: 'BLOCKED'
+            :param total_count: integer
+                example: 0
+        }
+        :raises ValueError: If query_type is not one of the accepted values.
+        """
+        uri = "/summary"
+        applied_filters = {}
+
+        VALID_QUERY_TYPE = {'TOTAL', 'BLOCKED', 'INDICATORS'}
+        if query_type.upper() not in VALID_QUERY_TYPE:
+            raise ValueError("summary: query_type must be one of %r" % VALID_QUERY_TYPE)
+        
+        applied_filters.update({'query_type': query_type.upper()})
+
+        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        
+    # Reports
+        
     def report(self, report_id: str) -> Dict:
         """
         Query the report endpoint to get a specific report.
@@ -178,39 +231,8 @@ class Client:
         uri = "/reports"
         
         return self.connection.post(uri, json.dumps({}))
-        
-    def summary(self, query_type: str) -> Dict:
-        """
-        Query the summary endpoint to get request summaries.
 
-        This endpoint returns a summary of requests based on the provided query type. The summary contains 
-        the total_count, query_type and day_count.
-
-        :param query_type: The type of summary query to perform. Accepted values are:
-            'TOTAL'
-            'BLOCKED'
-            'INDICATORS'
-        :return: A summary response object.
-        {
-            :param day_count: integer
-                example: 1
-            :param query_type: string
-                example: 'BLOCKED'
-            :param total_count: integer
-                example: 0
-        }
-        :raises ValueError: If query_type is not one of the accepted values.
-        """
-        uri = "/summary"
-        applied_filters = {}
-
-        VALID_QUERY_TYPE = {'TOTAL', 'BLOCKED', 'INDICATORS'}
-        if query_type.upper() not in VALID_QUERY_TYPE:
-            raise ValueError("summary: query_type must be one of %r" % VALID_QUERY_TYPE)
-        
-        applied_filters.update({'query_type': query_type.upper()})
-
-        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+    # Logs
 
     def histogram_artifact(self, artifact: str, artifact_type: str, start_date: str, end_date: str, interval: str, **kwargs) -> Dict:
         """
@@ -251,8 +273,8 @@ class Client:
 
         applied_filters.update({'artifact_type': artifact_type.lower()})
 
-        if not re.fullmatch("\d{4}-\d{2}-\d{2}", start_date) or not re.fullmatch("\d{4}-\d{2}-\d{2}", end_date):
-            raise ValueError("histogram_artifact: start_date, end_date must be in the format 'YYYY-MM-DD'")
+        if not self._is_valid_date(start_date) or not self._is_valid_date(end_date):
+            raise ValueError("histogram_artifact: start_date, end_date must be in the format 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:MM:SS.sssZ'")
 
         applied_filters.update({'start_date': start_date, 'end_date': end_date, 'interval': interval})
 
@@ -263,4 +285,106 @@ class Client:
 
             applied_filters.update({'query_type': kwargs['query_type'].lower()})
 
+        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+
+    def logs(self, applied_filters: List[Dict]) -> Dict:
+        """
+        Query the logs endpoint.
+
+        This method sends a request to the logs endpoint, which returns logs data based on the applied filters.
+
+        :param applied_filters: A list of dictionaries, each representing a filter to be applied on the logs data.
+            Each filter dictionary can include the following keys:
+                - "exclude": (boolean) Flag to indicate if the filter value should be excluded.
+                - "id": (string) The filter id, represents the field on which the filtering is applied. Accepted values are:
+                    DOMAIN
+                    DOMAIN_2TLD
+                    DOMAIN_TLD
+                    DOMAIN_AGE
+                    QUERY_TYPE
+                    RESPONSE_CODE
+                    TTL
+                    NAMESERVER
+                    NAMESERVER_2TLD
+                    NAMESERVER_TLD
+                    NAMESERVER_IP
+                    A_RECORD
+                    AAAA_RECORD
+                    C_NAME
+                    C_NAME_2TLD
+                    C_NAME_TLD
+                    REGISTRAR
+                    REPUTATION
+                    DATETIME
+                - "isRange": (boolean) Flag to indicate if the filter value is a range.
+                - "partial": (boolean) Flag to indicate if the filter should do partial matching.
+                - "rangeValue": (dictionary) If "isRange" is true, this dictionary with 'start' and 'end' keys represents the range value.
+                - "value": (string) If "isRange" is false, this represents the filter value.
+
+        :return: A logs response object.
+        :raises ValueError: If 'id' is not a valid value or date format in 'rangeValue' is not 'YYYY-MM-DDTHH:MM:SS.sssZ'.
+        """
+        uri = "/logs"
+
+        VALID_ID = {'DOMAIN', 'DOMAIN_2TLD', 'DOMAIN_TLD', 'DOMAIN_AGE', 'QUERY_TYPE', 'RESPONSE_CODE', 'TTL', 'NAMESERVER', 
+                    'NAMESERVER_2TLD', 'NAMESERVER_TLD', 'NAMESERVER_IP', 'A_RECORD', 'AAAA_RECORD', 'C_NAME', 
+                    'C_NAME_2TLD', 'C_NAME_TLD', 'REGISTRAR', 'REPUTATION', 'DATETIME'}
+
+        # Validate and convert parameters to proper format
+        for filter in applied_filters:
+            filter['id'] = filter['id'].upper()
+            if filter['id'] not in VALID_ID:
+                raise ValueError(f"Invalid filter ID. Must be one of {VALID_ID}")
+
+            if 'isRange' in filter and filter['isRange']:
+                # Check date format for 'start' and 'end'
+                for key in ('start', 'end'):
+                    if not self._is_valid_date(filter['rangeValue'][key]):
+                        raise ValueError(f"The '{key}' date in 'rangeValue' must be in 'YYYY-MM-DDTHH:MM:SS.sssZ' format.")
+            filter['id'] = filter['id'].lower()
+
+        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        
+    # Passthrough
+    
+    def passthrough(self, applied_filters: List[Dict]) -> Dict:
+        """
+        Query the passthrough endpoint.
+
+        This method sends a request to the passthrough endpoint, which returns passthrough data based on the applied filters.
+        
+        :param applied_filters: A list of filters to be applied. Each filter is a dictionary with the following keys:
+            - exclude: Flag to indicate if the filter value should be excluded (boolean).
+            - id: The filter id (string), one of the following options:
+                LAST_SEEN
+                ARTIFACT
+                HYAS_STATUS
+                ALT_STATUS
+                QUERY_COUNT
+            - isRange: Flag to indicate if the filter value is a range (boolean).
+            - partial: If the filter should do partial matching (boolean).
+            - rangeValue: Dictionary with 'start' and 'end' keys representing the range start and end values (string in YYYY-MM-DDTHH:MM:SS format).
+            - value: The filter value (string).
+            
+        :return: A dictionary containing the passthrough data.
+        :raises ValueError: If 'id' is not a valid value or date format in 'rangeValue' is not 'YYYY-MM-DDTHH:MM:SS.sssZ'.
+        """
+        uri = "/passthrough"
+        
+        # validate that the filter ids are within the valid options
+        valid_ids = ['LAST_SEEN', 'ARTIFACT', 'HYAS_STATUS', 'ALT_STATUS', 'QUERY_COUNT']
+        for filter in applied_filters:
+            if filter['id'].upper() not in valid_ids:
+                raise ValueError(f"Invalid id in filter: {filter['id']}. Must be one of {valid_ids}")
+                
+            # if the filter is a range, validate the date strings
+            if filter['isRange']:
+                start = filter.get('rangeValue', {}).get('start')
+                end = filter.get('rangeValue', {}).get('end')
+                if start and not self._is_valid_date(start):
+                    raise ValueError(f"Invalid start date in filter: {start}. Dates should be in the format 'YYYY-MM-DDTHH:MM:SS'.")
+                if end and not self._is_valid_date(end):
+                    raise ValueError(f"Invalid end date in filter: {end}. Dates should be in the format 'YYYY-MM-DDTHH:MM:SS'.")
+                
+        # make the request
         return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
