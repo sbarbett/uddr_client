@@ -1,7 +1,7 @@
 from .connection import Connection
 from .response import Response
 import json, re, datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 class Client:
     def __init__(self, api_key: str):
@@ -29,7 +29,7 @@ class Client:
         
     # Overview
 
-    def aggregates(self, query_type: str, **kwargs) -> Dict:
+    def aggregates(self, query_type: str, **kwargs) -> Response:
         """
         Query the aggregates endpoint.
 
@@ -75,9 +75,10 @@ class Client:
                 raise ValueError("aggregates: top_count must be an integer")
             applied_filters.update({'top_count': i})
 
-        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        return Response(response)
 
-    def bar(self, query_type: str) -> Dict:
+    def bar(self, query_type: str) -> Response:
         """
         Query the bar chart endpoint.
 
@@ -115,9 +116,10 @@ class Client:
             
         applied_filters.update({'query_type': query_type.lower()})
         
-        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        return Response(response)
         
-    def histogram(self, query_type: str) -> Dict:
+    def histogram(self, query_type: str) -> Response:
         """
         Query the histogram endpoint.
         
@@ -154,9 +156,10 @@ class Client:
             
         applied_filters.update({'query_type': query_type.lower()})
         
-        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        return Response(response)
         
-    def summary(self, query_type: str) -> Dict:
+    def summary(self, query_type: str) -> Response:
         """
         Query the summary endpoint to get request summaries.
 
@@ -187,7 +190,8 @@ class Client:
         
         applied_filters.update({'query_type': query_type.upper()})
 
-        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        return Response(response)
         
     # Reports
         
@@ -206,14 +210,16 @@ class Client:
         
         return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}), accept='application/pdf')
         
-    def reports(self) -> Dict:
+    def reports(self, datetime_start: Optional[str] = None, datetime_end: Optional[str] = None) -> Response:
         """
         Query the reports endpoint to get a list of executive reports.
 
         This endpoint returns a list of executive reports. Each item in the list contains detailed information 
         about a particular report, including the client_id, datetime, datetime_end, datetime_start, and report_id.
         
-        :return: An open containing a list of reports and the count.
+        :param datetime_start: The start date for the report in the format 'YYYY-MM-DDTHH:MM:SS.sssZ'
+        :param datetime_end: The end date for the report in the format 'YYYY-MM-DDTHH:MM:SS.sssZ'
+        :return: An object containing a list of reports and the count.
         {
             :param reports: [{
                 :param client_id: string
@@ -230,13 +236,26 @@ class Client:
         }
         """
         uri = "/reports"
-        
-        response = self.connection.post(uri, json.dumps({}))
+        data = {}
+
+        if datetime_start:
+            if self._is_valid_date(datetime_start):
+                data['datetime_start'] = datetime_start
+            else:
+                raise ValueError(f"Invalid datetime_start format: {datetime_start}")
+
+        if datetime_end:
+            if self._is_valid_date(datetime_end):
+                data['datetime_end'] = datetime_end
+            else:
+                raise ValueError(f"Invalid datetime_end format: {datetime_end}")
+
+        response = self.connection.post(uri, json.dumps(data))
         return Response(response)
 
     # Logs
 
-    def histogram_artifact(self, artifact: str, artifact_type: str, start_date: str, end_date: str, interval: str, **kwargs) -> Dict:
+    def histogram_artifact(self, artifact: str, artifact_type: str, start_date: str, end_date: str, interval: str, **kwargs) -> Response:
         """
         Query the histogram/artifact endpoint.
 
@@ -287,13 +306,16 @@ class Client:
 
             applied_filters.update({'query_type': kwargs['query_type'].lower()})
 
-        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        return Response(response)
 
-    def logs(self, applied_filters: List[Dict]) -> Dict:
+    def logs(self, applied_filters: List[Dict]) -> Response:
         """
         Query the logs endpoint.
 
         This method sends a request to the logs endpoint, which returns logs data based on the applied filters.
+        
+        NOTE: When you parse this into a CSV using the response handler it will return a list with 2 separate CSVs.
 
         :param applied_filters: A list of dictionaries, each representing a filter to be applied on the logs data.
             Each filter dictionary can include the following keys:
@@ -350,7 +372,7 @@ class Client:
         
     # Passthrough
     
-    def passthrough(self, applied_filters: List[Dict]) -> Dict:
+    def passthrough(self, applied_filters: List[Dict]) -> Response:
         """
         Query the passthrough endpoint.
 
@@ -390,4 +412,5 @@ class Client:
                     raise ValueError(f"Invalid end date in filter: {end}. Dates should be in the format 'YYYY-MM-DDTHH:MM:SS'.")
                 
         # make the request
-        return self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
+        return Response(response)
