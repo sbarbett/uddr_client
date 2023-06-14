@@ -1,10 +1,12 @@
-import requests
+import requests, os
 from typing import Dict, Union, Optional
 
 class Connection:
-    def __init__(self, api_key: str) -> None:
+    def __init__(self, api_key=None):
         self.endpoint = 'https://ddr.ultradns.com/api/protect/ext'
-        self.api_key = api_key
+        self.api_key = api_key or os.getenv('UDDR_API_KEY')
+        if self.api_key is None:
+            raise ValueError("No API Key provided. Please set it via argument or call Client.setup.")
         
     def _build_headers(self) -> Dict[str, str]:
         return {
