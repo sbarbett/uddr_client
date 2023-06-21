@@ -1,7 +1,14 @@
+from ..response import Response
 from ..connection import Connection
 
 class DOHClient:
     def __init__(self, connection: Connection, ioc: str):
         self.connection = connection
         self.ioc = ioc
-        return self.connection.get('/', doh=True, params={'name', ioc})
+        self.response = Response(connection.get('/', doh=True, params={'name': ioc}))
+        
+    def __str__(self) -> str:
+        return self.response
+
+    def __repr__(self) -> str:
+        return str(self.__str__())
