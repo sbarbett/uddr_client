@@ -50,13 +50,13 @@ class Client:
                         print('Skipping...')
                     else:
                         value = input(f'Enter a new value for {key}: ')
+                        print(f'Successfully set {key}.')
                 else:
                     value = input(f'Enter a value for {key}: ')
+                    print(f'Successfully set {key}.')
 
             # Set the new key-value pair in-memory
             config_settings[key] = value
-
-            print(f'Successfully set {key}.')
 
         # Write back the updated key-value pairs to the .env file
         with open('.env', 'w') as f:

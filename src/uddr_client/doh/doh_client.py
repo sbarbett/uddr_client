@@ -8,7 +8,7 @@ class DOHClient:
         self.response = Response(connection.get('/', doh=True, params={'name': ioc}))
         
     def __str__(self) -> str:
-        return self.response
+        return str(self.response)
 
     def __repr__(self) -> str:
         return str(self.__str__())
