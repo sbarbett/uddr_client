@@ -23,6 +23,7 @@ setup(
     python_requires=">=3.7", 
     install_requires=[
         "pandas>=2.0.2",
-        "xmltodict>=0.13.0"
+        "xmltodict>=0.13.0",
+	"python-decouple>=3.8",
     ],
 )
