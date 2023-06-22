@@ -62,6 +62,9 @@ class Connection:
             params=params
         )
 
+        # For debugging
+        # print(response.url)
+
         # Check for No Content
         if response.status_code == requests.codes.no_content:
             return {}
