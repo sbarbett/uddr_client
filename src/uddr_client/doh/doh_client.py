@@ -1,13 +1,15 @@
-import json
+import json, socket
 from typing import List, Optional
 from ..response import Response
 from ..connection import Connection
+from .ioc_parser import IOCParser
 
 class DOHClient:
     def __init__(self, connection: Connection, ioc: str):
         self._cache = {}  # Initialize a cache
         self.connection = connection
-        self.ioc = ioc
+        self.ioc = str(IOCParser(ioc))
+        self.type, self.ioc = self._determine_type(self.ioc)
         self.response = self._query()
         self.blocked = self._is_blocked()
 
@@ -16,9 +18,21 @@ class DOHClient:
 
     def __repr__(self) -> str:
         return self.__str__()
+        
+    def _determine_type(self, ioc: str) -> tuple:
+        try:
+            # Check if it's a valid IP
+            socket.inet_aton(ioc)
+            # Reverse the IP and append ".in-addr.arpa"
+            reversed_ioc = '.'.join(reversed(ioc.split('.'))) + ".in-addr.arpa"
+            return ('PTR', reversed_ioc)
+        except socket.error:
+            return (None, ioc)
 
     def _query(self, record_type: str = None) -> Response:
         params = {'name': self.ioc}
+        if record_type is None:
+            record_type = self.type
         if record_type is not None:
             params['type'] = record_type
         return Response(self.connection.get('/', doh=True, params=params))
@@ -56,10 +70,6 @@ class DOHClient:
         return self._get_record('NS')
         
     @property
-    def PTR(self) -> List[dict]:
-        return self._get_record('PTR')
-        
-    @property
     def SOA(self) -> List[dict]:
         return self._get_record('SOA')
         
@@ -83,7 +93,7 @@ class DOHClient:
     def DNSKEY(self) -> List[dict]:
         return self._get_record('DNSKEY')
         
-    def rcode(self) -> dict:
+    def status(self) -> dict:
         status = self.response.get('Status')
         reason = {'rcode': status}
         if status == 0:
@@ -116,3 +126,9 @@ class DOHClient:
             return f"The domain {self.ioc} is blocked by UDDR."
         else:
             return f"The domain {self.ioc} is not blocked by UDDR."
+            
+    def answer(self) -> List[dict]:
+        return self.response.get('Answer', [])
+        
+    def authority(self) -> List[dict]:
+        return self.response.get('Authority', [])

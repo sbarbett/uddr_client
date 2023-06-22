@@ -4,7 +4,7 @@ import xmltodict as xmltd
 from typing import Any, Union, List
 
 class Response:
-    def __init__(self, data: Any) -> None:
+    def __init__(self, data: Any):
         self.data = data
         
     def __json__(self):
