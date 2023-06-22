@@ -4,14 +4,21 @@ import xmltodict as xmltd
 from typing import Any, Union, List
 
 class Response:
-    def __init__(self, data: Any) -> None:
+    def __init__(self, data: Any):
         self.data = data
+        
+    def __json__(self):
+        return self.data
 
     def __str__(self) -> str:
-        return json.dumps(self.data)
+        return json.dumps(self.__json__())
 
     def __repr__(self) -> str:
         return self.__str__()
+        
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get an element from the serialized JSON data"""
+        return self.data.get(key, default)
 
     def xml(self) -> str:
         try:

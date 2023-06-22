@@ -1,34 +1,69 @@
 import requests, os
 from typing import Dict, Union, Optional
+from decouple import config
 
 class Connection:
-    def __init__(self, api_key=None):
-        self.endpoint = 'https://ddr.ultradns.com/api/protect/ext'
-        self.api_key = api_key or os.getenv('UDDR_API_KEY')
-        if self.api_key is None:
-            raise ValueError("No API Key provided. Please set it via argument or call Client.setup.")
-        
-    def _build_headers(self) -> Dict[str, str]:
-        return {
-            'Content-Type': 'application/json',
-            'X-API-Key': self.api_key
-        }
+    def __init__(self, api_key: Optional[str] = None, client_id: Optional[str] = None):
+        self.api_endpoint = 'https://ddr.ultradns.com/api/protect/ext'
+        self.doh_endpoint = 'https://rcsv.ddr.ultradns.com'
+
+        if api_key is None:
+            try:
+                self.api_key = config('UDDR_API_KEY')
+            except:
+                self.api_key = api_key
+        else:
+            self.api_key = api_key
+            
+        if client_id is None:
+            try:
+                self.client_id = config('UDDR_CLIENT_ID')
+            except:
+                self.client_id = client_id
+        else:
+            self.client_id = client_id
+
+    def get(self, uri: str, doh: Optional[bool] = False,
+            params: Optional[Dict] = None) -> Union[Dict, str, bytes]:
+        if doh is True:
+            if self.client_id is None:
+                raise ValueError("No Client ID provided. Please set it via argument or call Client.setup.")
+                
+            return self._do_call(self.doh_endpoint+uri+self.client_id, 'GET', accept='application/dns+json', c_type='application/x-www-form-urlencoded', params=params)
+        else:
+            return self._do_call(self.api_endpoint+uri, 'GET', c_type='application/x-www-form-urlencoded')
         
     def post(self, uri: str, data: Optional[Union[Dict, str]] = None, 
              accept: str = 'application/json') -> Union[Dict, str, bytes]:
-        return self._do_call(uri, 'POST', data=data, accept=accept)
+        return self._do_call(self.api_endpoint+uri, 'POST', data=data, accept=accept)
         
     def _do_call(self, uri: str, method: str, 
                  data: Optional[Union[Dict, str]] = None, 
-                 accept: str = 'application/json') -> Union[Dict, str, bytes]:
-        headers = self._build_headers()
+                 accept: str = 'application/json',
+                 c_type: str = 'application/json',
+                 params: Optional[Dict] = None) -> Union[Dict, str, bytes]:
+        if params is None:
+            if self.api_key is None:
+                raise ValueError("No API Key provided. Please set it via argument or call Client.setup.")
+                
+            headers = {
+                'Content-Type': c_type,
+                'X-API-Key': self.api_key
+            }
+        else:
+            headers = { 'Content-Type': c_type }
+            
         headers['Accept'] = accept
         response = requests.request(
             method, 
-            self.endpoint+uri, 
+            uri, 
             data=data, 
-            headers=headers
+            headers=headers,
+            params=params
         )
+
+        # For debugging
+        # print(response.url)
 
         # Check for No Content
         if response.status_code == requests.codes.no_content:
