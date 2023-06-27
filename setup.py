@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="uddr_client", 
-    version="0.1.0",  
+    version="0.2.1",  
     description="A Python client for the UDDR API.", 
     long_description=open("README.md").read(),
     long_description_content_type='text/markdown', 
@@ -24,6 +24,6 @@ setup(
     install_requires=[
         "pandas>=2.0.2",
         "xmltodict>=0.13.0",
-	"python-decouple>=3.8",
+	    "python-decouple>=3.8",
     ],
 )
