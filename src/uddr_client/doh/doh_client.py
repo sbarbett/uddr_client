@@ -20,13 +20,9 @@ class DOHClient:
         return self.__str__()
         
     def _determine_type(self, ioc: str) -> tuple:
-        try:
-            # Check if it's a valid IP
-            socket.inet_aton(ioc)
-            # Reverse the IP and append ".in-addr.arpa"
-            reversed_ioc = '.'.join(reversed(ioc.split('.'))) + ".in-addr.arpa"
-            return ('PTR', reversed_ioc)
-        except socket.error:
+        if ioc.endswith('.in-addr.arpa') or ioc.endswith('.ip6.arpa'):
+            return ('PTR', ioc)
+        else:
             return (None, ioc)
 
     def _query(self, record_type: str = None) -> Response:
