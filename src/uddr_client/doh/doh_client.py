@@ -117,11 +117,11 @@ class DOHClient:
         
         return reason
         
-    def block_info(self) -> str:
+    def block_info(self) -> dict:
         if self.blocked:
-            return f"The domain {self.ioc} is blocked by UDDR."
+            return {'blocked': True, 'domain': self.ioc, 'message': 'Blocked by UDDR'}
         else:
-            return f"The domain {self.ioc} is not blocked by UDDR."
+            return {'blocked': False, 'domain': self.ioc, 'message': 'Not blocked by UDDR'}
             
     def answer(self) -> List[dict]:
         return self.response.get('Answer', [])
