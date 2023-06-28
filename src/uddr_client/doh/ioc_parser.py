@@ -37,7 +37,7 @@ class IOCParser:
 
         except ValueError:  # It's not an IP address
             # If it's not a valid hostname either
-            if not re.match(r'^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$', self.ioc):
+            if not re.match(r'^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$', self.ioc):
                 raise InvalidIOCError(f"'{self.ioc}' is not a valid IP address or hostname")
 
     def __str__(self) -> str:
