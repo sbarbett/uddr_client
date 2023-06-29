@@ -98,7 +98,7 @@ doh.DNSKEY # For DNSKEY records
 
 ### Reverse Lookups
 
-If you pass an IP to the client, it will automatically perform a reverse lookup (PTR). IPv6 support hasn't been added yet.
+If you pass an IP to the client, it will automatically perform a reverse lookup (PTR).
 
 ### IoC Parsing
 
@@ -110,7 +110,7 @@ Indicators of compromise passed to the DOHClient as a positional argument will b
 2. URLs by means of stripping the protocol and path
 3. "Defanged" URLs which are intentionally obfuscated for security reasons
 4. Emails - the parser will remove the prefix and @
-5. IP addresses (not IPv6 yet)
+5. IP addresses
 
 ### Additional Methods
 
