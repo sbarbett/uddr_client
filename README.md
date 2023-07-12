@@ -126,6 +126,7 @@ The following methods return information about the DoH query or specific parts o
 * pandas
 * xmltodict
 * python-decouple
+* requests
 
 ## License
 
