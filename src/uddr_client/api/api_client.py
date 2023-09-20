@@ -1,7 +1,9 @@
-import json, datetime, os
+import json, datetime, re
 from typing import Dict, List, Optional
 from ..response import Response
 from ..connection import Connection
+from .account import Account
+from .decision import Decision
 
 class APIClient:
     def __init__(self, connection: Connection):
@@ -410,3 +412,31 @@ class APIClient:
         # make the request
         response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
         return Response(response)
+
+    def category(self, domain: str) -> Response:
+        """
+        Query the category endpoint.
+
+        This method sends a request to the category endpoint, which returns the category of a specified domain.
+
+        :param domain: The domain to query.
+        :return: A list containing the category data.
+        :raises ValueError: If 'domain' is not a valid domain.
+        """
+        uri = "/category/v1"
+
+        # validate that the domain is a legitimate domain name
+        if not re.match(r'^(?=.{1,253}\.?$)(?:(?!-|[^.]+_)[A-Za-z0-9-]{1,63}(?<!-)\.?)+[A-Za-z]{2,6}$', domain):
+            raise ValueError("The provided domain is not a valid domain name.")
+
+        # make the request
+        response = self.connection.post(uri, json.dumps({'domain': domain}), pvt=True)
+        return response
+
+    def account(self):
+        """The account endpoint contains information about the user's account"""
+        return Account(self.connection)
+
+    def decision(self):
+        """The decision engine endpoint"""
+        return Decision(self.connection)

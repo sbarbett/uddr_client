@@ -20,6 +20,10 @@ class Response:
         """Get an element from the serialized JSON data"""
         return self.data.get(key, default)
 
+    def raw(self) -> Any:
+        """Return the raw data"""
+        return self.data
+
     def xml(self) -> str:
         try:
             return xmltd.unparse({'response': self.data})
