@@ -6,3 +6,5 @@ __pycache__
 *.pyc
 /uddr_client.egg-info/*
 /venv/**
+dist/**
+build/**
