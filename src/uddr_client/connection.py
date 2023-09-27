@@ -3,7 +3,7 @@ from typing import Dict, Union, Optional
 from decouple import config
 
 class Connection:
-    def __init__(self, api_key: Optional[str] = None, client_id: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None):
         self.api_endpoint = 'https://ddr.ultradns.com/api/protect/ext'
         self.pvt_api_endpoint = 'https://api.ddr.ultradns.com'
         self.doh_endpoint = 'https://rcsv.ddr.ultradns.com'
@@ -15,22 +15,11 @@ class Connection:
                 self.api_key = api_key
         else:
             self.api_key = api_key
-            
-        if client_id is None:
-            try:
-                self.client_id = config('UDDR_CLIENT_ID')
-            except:
-                self.client_id = client_id
-        else:
-            self.client_id = client_id
 
-    def get(self, uri: str, doh: Optional[bool] = False, pvt: Optional[bool] = False,
+    def get(self, uri: str, client_id: Optional[bool] = None, pvt: Optional[bool] = False,
             params: Optional[Dict] = None) -> Union[Dict, str, bytes]:
-        if doh is True:
-            if self.client_id is None:
-                raise ValueError("No Client ID provided. Please set it via argument or call Client.setup.")
-                
-            return self._do_call(self.doh_endpoint+uri+self.client_id, 'GET', accept='application/dns+json', c_type='application/x-www-form-urlencoded', params=params)
+        if client_id is not None:
+            return self._do_call(self.doh_endpoint+uri+client_id, 'GET', accept='application/dns+json', c_type='application/x-www-form-urlencoded', params=params)
         elif pvt is True:
             return self._do_call(self.pvt_api_endpoint+uri, 'GET', c_type='application/x-www-form-urlencoded')
         else:

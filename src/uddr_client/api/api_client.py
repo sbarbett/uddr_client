@@ -413,6 +413,8 @@ class APIClient:
         response = self.connection.post(uri, json.dumps({'applied_filters': applied_filters}))
         return Response(response)
 
+    # Private APIs
+
     def category(self, domain: str) -> Response:
         """
         Query the category endpoint.

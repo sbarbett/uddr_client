@@ -13,17 +13,26 @@ pip install uddr_client
 
 ## Setup
 
-For ease of use, you can store your API key and client ID in an environment file using the client's "setup" method.
+For ease of use, you can store your API key in an environment file using the client's "setup" method.
 
 ```python
 import uddr_client
 uddr_client.connect.setup()
 ```
 
-Alternatively, you can pass the key or ID directly to the connection using keyword arguments.
+Alternatively, you can pass the key directly to the connection using keyword arguments.
 
 ```python
-c = uddr_client.connect('api_key=<your API key>, client_id=<your client ID>')
+c = uddr_client.connect('api_key=<your API key>')
+```
+
+If your API key is associated with more than one organization, you can specify which one to use by passing the organization name as a keyword argument or by setting it in your environment.
+
+```python
+import uddr_client
+client = uddr_client.connect()
+doh_client = client.doh()
+doh_client.setup()
 ```
 
 ## API Usage
@@ -32,8 +41,8 @@ c = uddr_client.connect('api_key=<your API key>, client_id=<your client ID>')
 import uddr_client
 
 c = uddr_client.connect() # Instantiates a new instance of the client which, by default, uses the API key stored in your .env
-
-resp = c.api().reports()        # Call an endpoint
+api_client = c.api()      # Creates an API client instance
+resp = api_client.reports()        # Call an endpoint
 print(resp)
 ```
 
@@ -50,6 +59,17 @@ The API client currently supports the following endpoints:
 * `histogram_artifact()`
 * `logs()`
 * `passthrough()`
+* `category()`
+* `account()`
+  * `organization()`
+    * `settings()`
+    * `products()`
+    * `packages()`
+  * `user()`
+    * `organizations()`
+* `decision()`
+  * `baseline()`
+    * `countries()`
 
 Use Python's help function for more in-depth documentation on each method.
 
@@ -59,7 +79,7 @@ help(c.api().logs)
 
 ### Response parsing
 
-Aside from the `report()` endpoint (which returns an application/pdf), all methods produce a Response object which handles different outputs.
+Aside from the `report()` _(application/pdf)_ and `category()` _(list)_ endpoints, all methods produce a Response object which handles different outputs.
 
 * `Response.xml()`: Outputs the response in XML
 * `Response.csv()`: Outputs the response in CSV
@@ -73,9 +93,10 @@ The DNS over HTTPS (DoH) client provides an interface for directly querying the 
 ```python
 import uddr_client
 
-c = uddr_client.connect() # Instantiates a new instance of the client
-doh = c.doh('google.com') # Creates a DOHClient instance for google.com
-print(doh)                # This will return the full json response
+client = uddr_client.connect()
+doh = client.doh() # Creates a DoH client instance
+lookup = doh.lookup('google.com') # Perform a lookup on google.com
+print(lookup)  # This will return the full json response for the lookup
 ```
 
 ### Record Types
@@ -83,17 +104,17 @@ print(doh)                # This will return the full json response
 The client stores the response for various DNS record types as properties. The following are supported.
 
 ```python
-doh.A      # For A records
-doh.AAAA   # For AAAA records
-doh.CNAME  # For CNAME records
-doh.NS     # For NS records
-doh.MX     # For MX records
-doh.TXT    # For TXT records
-doh.SOA    # For SOA records
-doh.SRV    # For SRV records
-doh.CAA    # For CAA records
-doh.DS     # For DS records
-doh.DNSKEY # For DNSKEY records
+lookup.A      # For A records
+lookup.AAAA   # For AAAA records
+lookup.CNAME  # For CNAME records
+lookup.NS     # For NS records
+lookup.MX     # For MX records
+lookup.TXT    # For TXT records
+lookup.SOA    # For SOA records
+lookup.SRV    # For SRV records
+lookup.CAA    # For CAA records
+lookup.DS     # For DS records
+lookup.DNSKEY # For DNSKEY records
 ```
 
 ### Reverse Lookups
